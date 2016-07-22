@@ -85,16 +85,25 @@ class TestBenchInit(unittest.TestCase):
 			self.assertTrue(key in site_config)
 			self.assertTrue(site_config[key])
 
-	def test_install_app(self):
+	def test_get_app(self):
 		site_name = "test-site-2.dev"
-
 		self.init_bench('test-bench')
-		self.new_site(site_name)
 
+		self.new_site(site_name)
+		bench_path = os.path.join(self.benches_path, "test-bench")
+
+		bench.app.get_app("https://github.com/frappe/frappe-client", bench_path=bench_path)
+		self.assertTrue(os.path.exists(os.path.join(bench_path, "apps", "frappeclient")))
+
+	def test_install_app(self):
+		site_name = "test-site-3.dev"
+		self.init_bench('test-bench')
+
+		self.new_site(site_name)
 		bench_path = os.path.join(self.benches_path, "test-bench")
 
 		# get app
-		bench.app.get_app("erpnext", "https://github.com/frappe/erpnext", "develop", bench_path=bench_path)
+		bench.app.get_app("https://github.com/frappe/erpnext", "develop", bench_path=bench_path)
 
 		self.assertTrue(os.path.exists(os.path.join(bench_path, "apps", "erpnext")))
 
@@ -106,6 +115,38 @@ class TestBenchInit(unittest.TestCase):
 
 		out = subprocess.check_output(["bench", "--site", site_name, "list-apps"], cwd=bench_path)
 		self.assertTrue("erpnext" in out)
+
+
+	def test_remove_app(self):
+		self.init_bench('test-bench')
+
+		bench_path = os.path.join(self.benches_path, "test-bench")
+
+		# get app
+		bench.app.get_app("https://github.com/frappe/erpnext", "develop", bench_path=bench_path)
+
+		self.assertTrue(os.path.exists(os.path.join(bench_path, "apps", "erpnext")))
+
+		# remove it
+		bench.app.remove_app("erpnext", bench_path=bench_path)
+
+		self.assertFalse(os.path.exists(os.path.join(bench_path, "apps", "erpnext")))
+
+
+	def test_switch_to_branch(self):
+		self.init_bench('test-bench')
+
+		bench_path = os.path.join(self.benches_path, "test-bench")
+		app_path = os.path.join(bench_path, "apps", "frappe")
+
+		bench.app.switch_branch(branch="master", apps=["frappe"], bench_path=bench_path, check_upgrade=False)
+		out = subprocess.check_output(['git', 'status'], cwd=app_path)
+		self.assertTrue("master" in out)
+
+		# bring it back to develop!
+		bench.app.switch_branch(branch="develop", apps=["frappe"], bench_path=bench_path, check_upgrade=False)
+		out = subprocess.check_output(['git', 'status'], cwd=app_path)
+		self.assertTrue("develop" in out)
 
 	def init_bench(self, bench_name, **kwargs):
 		self.benches.append(bench_name)

@@ -1,8 +1,8 @@
 ---
 - hosts: localhost
   vars:
-    bench_repo_path: "/usr/local/frappe/bench-repo"
-    bench_path: "/Users/{{ ansible_user_id }}/frappe/frappe-bench"
+    bench_repo_path: "/Users/{{ ansible_user_id }}/.bench"
+    bench_path: "/Users/{{ ansible_user_id }}/frappe-bench"
     mysql_config_template: "templates/simple_mariadb_config.cnf"
     mysql_conf_dir: /usr/local/etc/my.cnf.d
 
@@ -29,3 +29,6 @@
   # setup frappe-bench
   - include: includes/setup_bench.yml
 
+  # setup development environment
+  - include: includes/setup_dev_env.yml
+    when: not production

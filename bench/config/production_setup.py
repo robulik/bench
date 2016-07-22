@@ -1,7 +1,7 @@
-from bench.utils import get_program, exec_cmd, get_cmd_output, fix_prod_setup_perms, get_bench_name
+from bench.utils import get_program, exec_cmd, get_cmd_output, fix_prod_setup_perms, get_bench_name, find_executable, CommandFailedError
 from bench.config.supervisor import generate_supervisor_config
 from bench.config.nginx import make_nginx_conf
-import os
+import os, subprocess
 
 def setup_production(user, bench_path='.'):
 	generate_supervisor_config(bench_path=bench_path, user=user)
@@ -23,24 +23,46 @@ def setup_production(user, bench_path='.'):
 	if not os.path.islink(nginx_conf):
 		os.symlink(os.path.abspath(os.path.join(bench_path, 'config', 'nginx.conf')), nginx_conf)
 
-	exec_cmd('supervisorctl reload')
+	reload_supervisor()
+
 	if os.environ.get('NO_SERVICE_RESTART'):
 		return
 
-	restart_service('nginx')
+	reload_nginx()
 
+def disable_production(bench_path='.'):
+	bench_name = get_bench_name(bench_path)
 
-def restart_service(service):
+	# supervisorctl
+	supervisor_conf_extn = "ini" if is_centos7() else "conf"
+	supervisor_conf = os.path.join(get_supervisor_confdir(), '{bench_name}.{extn}'.format(
+		bench_name=bench_name, extn=supervisor_conf_extn))
+
+	if os.path.islink(supervisor_conf):
+		os.unlink(supervisor_conf)
+
+	exec_cmd('sudo supervisorctl reread')
+	exec_cmd('sudo supervisorctl update')
+
+	# nginx
+	nginx_conf = '/etc/nginx/conf.d/{bench_name}.conf'.format(bench_name=bench_name)
+
+	if os.path.islink(nginx_conf):
+		os.unlink(nginx_conf)
+
+	reload_nginx()
+
+def service(service, option):
 	if os.path.basename(get_program(['systemctl']) or '') == 'systemctl' and is_running_systemd():
-		exec_cmd("{service_manager} restart {service}".format(service_manager='systemctl', service=service))
+		exec_cmd("sudo {service_manager} {option} {service}".format(service_manager='systemctl', option=option, service=service))
 	elif os.path.basename(get_program(['service']) or '') == 'service':
-		exec_cmd("{service_manager} {service} restart ".format(service_manager='service', service=service))
+		exec_cmd("sudo {service_manager} {service} {option} ".format(service_manager='service', service=service, option=option))
 	else:
 		# look for 'service_manager' and 'service_manager_command' in environment
 		service_manager = os.environ.get("BENCH_SERVICE_MANAGER")
 		if service_manager:
 			service_manager_command = (os.environ.get("BENCH_SERVICE_MANAGER_COMMAND")
-				or "{service_manager} restart {service}").format(service_manager=service_manager, service=service)
+				or "{service_manager} {option} {service}").format(service_manager=service_manager, service=service, option=option)
 			exec_cmd(service_manager_command)
 
 		else:
@@ -71,3 +93,39 @@ def is_running_systemd():
 	elif comm == "systemd":
 		return True
 	return False
+
+def reload_supervisor():
+	supervisorctl = find_executable('supervisorctl')
+
+	try:
+		# first try reread/update
+		exec_cmd('sudo {0} reread'.format(supervisorctl))
+		exec_cmd('sudo {0} update'.format(supervisorctl))
+		return
+	except CommandFailedError:
+		pass
+
+	try:
+		# something is wrong, so try reloading
+		exec_cmd('sudo {0} reload'.format(supervisorctl))
+		return
+	except CommandFailedError:
+		pass
+
+	try:
+		# then try restart for centos
+		service('supervisord', 'restart')
+		return
+	except CommandFailedError:
+		pass
+
+	try:
+		# else try restart for ubuntu / debian
+		service('supervisor', 'restart')
+		return
+	except CommandFailedError:
+		pass
+
+def reload_nginx():
+	subprocess.check_output(['sudo', find_executable('nginx'), '-t'])
+	service('nginx', 'reload')

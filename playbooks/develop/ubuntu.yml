@@ -1,8 +1,8 @@
 ---
 - hosts: localhost
   vars:
-    bench_repo_path: "/usr/local/frappe/bench-repo"
-    bench_path: "/home/{{ ansible_user_id }}/frappe/frappe-bench"
+    bench_repo_path: "/home/{{ ansible_user_id }}/.bench"
+    bench_path: "/home/{{ ansible_user_id }}/frappe-bench"
     mysql_config_template: "templates/simple_mariadb_config.cnf"
     mysql_conf_dir: /etc/mysql/conf.d/
     wkhtmltopdf_version: 0.12.2.1
@@ -45,11 +45,11 @@
       - libtiff4-dev
       - tcl8.5-dev
       - tk8.5-dev
-    when: ansible_distribution_version < 14.04
+    when: ansible_distribution_version | version_compare('14.04', 'lt')
     become: yes
     become_user: root
 
-  - name: install pillow prerequisites for Ubuntu > 14.04
+  - name: install pillow prerequisites for Ubuntu >= 14.04
     apt: pkg={{ item }} state=present
     with_items:
       - libtiff5-dev
@@ -68,5 +68,13 @@
   # setup MariaDB
   - include: includes/setup_mariadb.yml
 
+  - debug:
+      var: run_travis
+
   # setup frappe-bench
   - include: includes/setup_bench.yml
+    when: not run_travis
+
+  # setup development environment
+  - include: includes/setup_dev_env.yml
+    when: not production and not run_travis

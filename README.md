@@ -40,71 +40,35 @@ Installation
 Easy Setup 
 ---------------------
 - This is an opinionated setup with logging and SE Linux. So, it is best to setup on a blank server.
-- Supported for CentOS 6, CentOS 7, Debian 7 and Ubuntu 12.04 to 15.x
+- Tested on Ubuntu 14.04 to 16.04, CentOS 7+, and MacOS X. If you find any problems, post them on our forum: [https://discuss.erpnext.com](https://discuss.erpnext.com)
 - This script will install the pre-requisites, install bench and setup an ERPNext site
-- Passwords for Frappe, Frappe Administrator and MariaDB (root) will be generated
-- You can then login as **Administrator** with the Administrator password printed 
+- Passwords for Frappe Administrator and MariaDB (root) will be asked
+- You can then login as **Administrator** with the Administrator password
 
 Open your Terminal and enter:
 
-
-####For Production:
-
 ```
-Mac OSX:
-curl "https://raw.githubusercontent.com/frappe/bench/master/install_scripts/setup_frappe.sh" -o "setup_frappe.sh"
-
-Linux: 
-wget https://raw.githubusercontent.com/frappe/bench/master/install_scripts/setup_frappe.sh
-
-sudo bash setup_frappe.sh --setup-production
-```
-
-####For Development:
-> We recommend using the [Beta Development Setup](#beta-development-setup) if it supports your OS
-
-```
-Mac OSX:
-curl "https://raw.githubusercontent.com/frappe/bench/master/install_scripts/setup_frappe.sh" -o "setup_frappe.sh"
-
-Linux: 
-wget https://raw.githubusercontent.com/frappe/bench/master/install_scripts/setup_frappe.sh
-sudo bash setup_frappe.sh --bench-branch develop
-```
-You have to explicitly start services by running `bench start`.
-
-####Script Options:
-```
-	-h | --help 
-	-v | --verbose 
-	--mysql-root-password 
-	--frappe-user 
-	--setup-production 
-	--skip-setup-bench 
-	--skip-install-bench 
-```
-
-
-Beta Installer
-------------------------
-
-Tested on Ubuntu 14.04 to 15.x, Debian 7+, CentOS 7+, and MacOS X. If you find any problems, post them on our forum: [https://discuss.erpnext.com](https://discuss.erpnext.com)
-
-```
-Linux: 
+# Linux: 
 wget https://raw.githubusercontent.com/frappe/bench/develop/playbooks/install.py
 
-Mac OSX:
+# Mac OSX:
 curl "https://raw.githubusercontent.com/frappe/bench/develop/playbooks/install.py" -o install.py
 
-# for development
+# For development
 sudo python install.py --develop
 
-# for production
+# For production
 sudo python install.py --production
 
+# If you're logged in as root, use --user flag to create a user and install using that user
+sudo python install.py --develop --user frappe
+
 ```
-For development, you have to explicitly start services by running `bench start`. This script requires Python2.7+ installed on your machine. You need to run this with a user that is **not** `root`, but can `sudo`. If you don't have such a user, you can search the web for *How to add a new user in { your OS }* and *How to add an existing user to sudoers in { your OS }*.
+For development, you have to explicitly start services by running `bench start`. This script requires Python2.7+ installed on your machine. You will have to manually create a new site (`bench new-site`) and get apps that you need (`bench get-app`, `bench install-app`).
+
+For production, you will have a preinstalled site with ERPNext installed in it. 
+
+You need to run this with a user that is **not** `root`, but can `sudo`. If you don't have such a user, you can search the web for *How to add a new user in { your OS }* and *How to add an existing user to sudoers in { your OS }*.
 
 On Mac OS X, you will have to create a group with the same name as *{ your User }*. On creating this group, you have to assign *{ your User }* to it. You can do this by going to "System preferences" -> "Users & Groups" -> "+" (as if you were adding new account) -> Under "New account" select "Group" -> Type in group name -> "Create group"
 
@@ -120,7 +84,17 @@ This script will:
 		- WKHTMLtoPDF with patched QT
 	- Initializes a new Bench at `~/frappe/frappe-bench` with `frappe` framework already installed under `apps`.
 	
-You will have to manually create a new site (`bench new-site`) and get apps that you need (`bench get-app`, `bench install-app`).
+####Script Options:
+```
+	--help
+	--verbose
+	--develop
+	--production
+	--site
+	--user
+	--bench-branch
+	--repo-url
+```
 
 Updating
 ========

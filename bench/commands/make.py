@@ -19,13 +19,13 @@ def init(path, apps_path, frappe_path, frappe_branch, no_procfile, no_backups,
 
 
 @click.command('get-app')
-@click.argument('name')
+@click.argument('name', nargs=-1) # Dummy argument for backward compatibility
 @click.argument('git-url')
 @click.option('--branch', default=None, help="branch to checkout")
-def get_app(name, git_url, branch):
+def get_app(git_url, branch, name=None):
 	"clone an app from the internet and set it up in your bench"
 	from bench.app import get_app
-	get_app(name, git_url, branch=branch)
+	get_app(git_url, branch=branch)
 
 
 @click.command('new-app')
@@ -34,6 +34,14 @@ def new_app(app_name):
 	"start a new app"
 	from bench.app import new_app
 	new_app(app_name)
+
+
+@click.command('remove-app')
+@click.argument('app-name')
+def remove_app(app_name):
+	"completely remove app from bench"
+	from bench.app import remove_app
+	remove_app(app_name)
 
 
 @click.command('new-site')
